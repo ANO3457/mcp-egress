@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `mcp-egress diff OLD.json NEW.json` compares saved documents offline, showing added/removed hosts with tool attribution and changed per-tool host lists; it reuses baseline comparison and never modifies either file (#9).
 
 ## [0.2.0] - 2026-10-20
 
