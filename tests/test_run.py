@@ -314,6 +314,7 @@ def test_outer_proxy_in_the_test_environment_is_not_used(proxied_command, http_s
     result = run(proxied_command, [CallSpec("fetch", {"url": http_server.url})], server_log)
     assert [c.key for c in result.recorder.connections] == [http_server.key]
 
+
 def test_auto_calls_markdown_includes_skipped_note(proxied_command, tmp_path, capsys):
     from mcp_egress.cli import EXIT_OK, main
 
