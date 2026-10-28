@@ -126,7 +126,9 @@ def wipe() -> str:
 
 @server.tool()
 def reset() -> str:
-    """Unannotated zero-argument tool skipped by --auto-calls because destructiveHint defaults to true."""
+    """Unannotated zero-argument tool skipped by --auto-calls because destructiveHint
+    defaults to true.
+    """
     return "reset"
 
 
