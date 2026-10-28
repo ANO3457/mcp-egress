@@ -172,7 +172,7 @@ def run_command(ns: argparse.Namespace, command: list[str]) -> int:
         if not comparison.ok:
             status = EXIT_NEW_HOSTS
     if markdown:
-        print(render_report_markdown(doc), file=out)
+        print(render_report_markdown(doc, skipped_destructive=result.skipped_destructive), file=out)
         # Keep stdout pure Markdown so it can be redirected into a comment body.
         out = sys.stderr
     elif comparison is not None:

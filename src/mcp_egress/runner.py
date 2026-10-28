@@ -192,10 +192,13 @@ def _auto_calls(tools: list[ToolInfo], calls: list[CallSpec]) -> tuple[list[Call
         if tool.name in seen or required:
             continue
         seen.add(tool.name)
-        if isinstance(tool.annotations, dict) and tool.annotations.get("destructiveHint") is True:
+        annotations = tool.annotations if isinstance(tool.annotations, dict) else {}
+        read_only = annotations.get("readOnlyHint") is True
+        destructive_explicit_false = annotations.get("destructiveHint") is False
+        if read_only or destructive_explicit_false:
+            extra.append(CallSpec(tool=tool.name, arguments={}))
+        else:
             skipped.append(tool.name)
-            continue
-        extra.append(CallSpec(tool=tool.name, arguments={}))
     return extra, skipped
 
 

@@ -159,7 +159,7 @@ def render_report(doc: dict, skipped_destructive: list[str] | None = None) -> st
     ]
     if skipped_destructive:
         names = ", ".join(skipped_destructive)
-        parts.extend(["", f"Note: skipped destructive tool(s) (destructiveHint: true): {names}"])
+        parts.extend(["", f"Note: skipped destructive tool(s): {names}"])
     return "\n".join(parts)
 
 
@@ -172,7 +172,7 @@ def _md_code(text: str) -> str:
     return f"`{text}`" if "`" not in text else f"`` {text} ``"
 
 
-def render_report_markdown(doc: dict) -> str:
+def render_report_markdown(doc: dict, skipped_destructive: list[str] | None = None) -> str:
     """The same content as `render_report`, as GitHub-flavoured Markdown.
 
     Suitable for a pull request comment or `$GITHUB_STEP_SUMMARY`. When the
@@ -256,4 +256,7 @@ def render_report_markdown(doc: dict) -> str:
             lines.extend(
                 f"- {_md_code(key)} {_new_host_note(doc, key)}" for key in check["new_hosts"]
             )
+    if skipped_destructive:
+        names = ", ".join(skipped_destructive)
+        lines.extend(["", f"Note: skipped destructive tool(s): {names}"])
     return "\n".join(lines)
