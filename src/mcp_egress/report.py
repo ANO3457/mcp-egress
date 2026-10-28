@@ -159,12 +159,7 @@ def render_report(doc: dict, skipped_destructive: list[str] | None = None) -> st
     ]
     if skipped_destructive:
         names = ", ".join(skipped_destructive)
-        parts.extend(
-            [
-                "",
-                f"Note: skipped destructive tool(s) (destructiveHint: true): {names}",
-            ]
-        )
+        parts.extend(["", f"Note: skipped destructive tool(s) (destructiveHint: true): {names}"])
     return "\n".join(parts)
 
 

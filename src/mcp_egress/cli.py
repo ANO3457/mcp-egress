@@ -56,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--auto-calls",
         action="store_true",
-        help="call every tool from tools/list that needs no arguments (skips destructiveHint: true)",
+        help="call every tool from tools/list that needs no arguments",
     )
     run.add_argument(
         "--baseline",
@@ -148,11 +148,7 @@ def run_command(ns: argparse.Namespace, command: list[str]) -> int:
     try:
         result = asyncio.run(
             run_server(
-                command,
-                calls,
-                timeout=ns.timeout,
-                errlog=errlog,
-                auto_calls=ns.auto_calls,
+                command, calls, timeout=ns.timeout, errlog=errlog, auto_calls=ns.auto_calls
             )
         )
     except RunError as exc:

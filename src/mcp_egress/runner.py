@@ -181,9 +181,7 @@ def _tool_info(tool: types.Tool) -> ToolInfo:
     )
 
 
-def _auto_calls(
-    tools: list[ToolInfo], calls: list[CallSpec]
-) -> tuple[list[CallSpec], list[str]]:
+def _auto_calls(tools: list[ToolInfo], calls: list[CallSpec]) -> tuple[list[CallSpec], list[str]]:
     seen = {spec.tool for spec in calls}
     extra: list[CallSpec] = []
     skipped: list[str] = []

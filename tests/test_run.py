@@ -238,34 +238,24 @@ def test_auto_calls_runs_zero_arg_tools_and_skips_destructive(
 ):
     from mcp_egress.cli import EXIT_OK, main
 
+    explicit_url = http_server.url + "/explicit"
     result = asyncio.run(
         run_server(
             proxied_command,
-            [CallSpec("ping", {"url": http_server.url + "/explicit"})],
+            [CallSpec("ping", {"url": explicit_url})],
             errlog=server_log,
             auto_calls=True,
         )
     )
-    assert [(c.tool, c.arguments) for c in result.calls] == [
-        ("ping", {"url": http_server.url + "/explicit"}),
-        ("env", {}),
-    ]
+    got_calls = [(c.tool, c.arguments) for c in result.calls]
+    assert got_calls == [("ping", {"url": explicit_url}), ("env", {})]
     assert "fetch" not in {c.tool for c in result.calls}
     assert result.skipped_destructive == ["wipe"]
 
     out_file = tmp_path / "auto.json"
-    code = main(
-        [
-            "run",
-            "--auto-calls",
-            "--out",
-            str(out_file),
-            "--server-stderr",
-            str(tmp_path / "stderr.log"),
-            "--",
-            *proxied_command,
-        ]
-    )
+    err_log = str(tmp_path / "stderr.log")
+    argv = ["run", "--auto-calls", "--out", str(out_file), "--server-stderr", err_log, "--"]
+    code = main([*argv, *proxied_command])
     assert code == EXIT_OK
     stdout = capsys.readouterr().out
     assert "wipe" in stdout
