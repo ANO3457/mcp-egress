@@ -147,9 +147,7 @@ def run_command(ns: argparse.Namespace, command: list[str]) -> int:
         errlog = open(ns.server_stderr, "w", encoding="utf-8")  # noqa: SIM115 - closed below
     try:
         result = asyncio.run(
-            run_server(
-                command, calls, timeout=ns.timeout, errlog=errlog, auto_calls=ns.auto_calls
-            )
+            run_server(command, calls, timeout=ns.timeout, errlog=errlog, auto_calls=ns.auto_calls)
         )
     except RunError as exc:
         print(f"error: {exc}", file=sys.stderr)
