@@ -49,6 +49,7 @@ class ToolInfo:
     description: str | None
     annotations: dict[str, Any] | None
     hosts: list[str] = field(default_factory=list)
+    input_schema: dict[str, Any] | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -109,6 +110,7 @@ class RunResult:
     tools: list[ToolInfo]
     calls: list[CallOutcome]
     recorder: Recorder
+    skipped_destructive: list[str] = field(default_factory=list)
 
 
 def child_environment(proxy_url: str, base: dict[str, str] | None = None) -> dict[str, str]:
@@ -169,9 +171,34 @@ def _tool_info(tool: types.Tool) -> ToolInfo:
     annotations = None
     if tool.annotations is not None:
         annotations = tool.annotations.model_dump(by_alias=True, exclude_none=True)
+    schema = getattr(tool, "inputSchema", None) or getattr(tool, "input_schema", None)
     return ToolInfo(
-        name=tool.name, title=tool.title, description=tool.description, annotations=annotations
+        name=tool.name,
+        title=tool.title,
+        description=tool.description,
+        annotations=annotations,
+        input_schema=schema if isinstance(schema, dict) else None,
     )
+
+
+def _auto_calls(
+    tools: list[ToolInfo], calls: list[CallSpec]
+) -> tuple[list[CallSpec], list[str]]:
+    seen = {spec.tool for spec in calls}
+    extra: list[CallSpec] = []
+    skipped: list[str] = []
+    for tool in tools:
+        required = (
+            tool.input_schema.get("required") if isinstance(tool.input_schema, dict) else None
+        )
+        if tool.name in seen or required:
+            continue
+        seen.add(tool.name)
+        if isinstance(tool.annotations, dict) and tool.annotations.get("destructiveHint") is True:
+            skipped.append(tool.name)
+            continue
+        extra.append(CallSpec(tool=tool.name, arguments={}))
+    return extra, skipped
 
 
 async def _list_all_tools(session: ClientSession) -> list[types.Tool]:
@@ -232,6 +259,7 @@ async def run_server(
     timeout: float = 30.0,
     errlog: IO[str] | None = None,
     startup_timeout: float | None = None,
+    auto_calls: bool = False,
 ) -> RunResult:
     """Run initialize, tools/list and the given calls with every proxy variable set.
 
@@ -249,6 +277,7 @@ async def run_server(
     server: ServerInfo | None = None
     tools: list[ToolInfo] = []
     outcomes: list[CallOutcome] = []
+    skipped_destructive: list[str] = []
     async with RecordingProxy(recorder) as proxy:
         params = StdioServerParameters(
             command=command[0], args=list(command[1:]), env=child_environment(proxy.url)
@@ -267,7 +296,10 @@ async def run_server(
                 )
                 tools = [_tool_info(t) for t in await _list_all_tools(session)]
                 await _settle()
-                for spec in calls:
+                extra_calls, skipped_destructive = (
+                    _auto_calls(tools, calls) if auto_calls else ([], [])
+                )
+                for spec in [*calls, *extra_calls]:
                     recorder.set_phase(PHASE_CALL, spec.tool)
                     outcomes.append(await _call(session, spec, recorder, proxy.url, timeout))
                 recorder.set_phase(PHASE_SHUTDOWN)
@@ -298,4 +330,5 @@ async def run_server(
         tools=tools,
         calls=outcomes,
         recorder=recorder,
+        skipped_destructive=skipped_destructive,
     )

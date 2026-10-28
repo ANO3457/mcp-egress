@@ -131,7 +131,7 @@ def _new_host_note(doc: dict, key: str) -> str:
     return f"(tools: {', '.join(tools)})" if tools else "(no tool, seen while listing)"
 
 
-def render_report(doc: dict) -> str:
+def render_report(doc: dict, skipped_destructive: list[str] | None = None) -> str:
     """The full terminal report: summary, table, paste blocks, warnings."""
     server = doc["server"]
     server_line = (
@@ -157,6 +157,14 @@ def render_report(doc: dict) -> str:
         "",
         render_warnings(doc),
     ]
+    if skipped_destructive:
+        names = ", ".join(skipped_destructive)
+        parts.extend(
+            [
+                "",
+                f"Note: skipped destructive tool(s) (destructiveHint: true): {names}",
+            ]
+        )
     return "\n".join(parts)
 
 

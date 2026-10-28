@@ -67,7 +67,7 @@ def test_proxied_server_hosts_are_recorded_with_phase_and_tool(proxied_run):
 def test_tools_section_carries_annotations_and_hosts(proxied_run):
     _, doc, server = proxied_run
     tools = {t["name"]: t for t in doc["tools"]}
-    assert set(tools) == {"fetch", "ping", "tunnel", "echo", "env", "sleep"}
+    assert set(tools) == {"fetch", "ping", "tunnel", "echo", "env", "sleep", "wipe"}
     assert tools["fetch"]["annotations"] == {"readOnlyHint": True, "openWorldHint": True}
     assert tools["fetch"]["hosts"] == [server.key]
     assert tools["tunnel"]["hosts"] == [server.key]
@@ -227,10 +227,54 @@ def test_socket_server_bypasses_the_proxy_and_is_warned_about(
 
 def test_list_phase_without_calls(proxied_command, server_log):
     result = run(proxied_command, [], server_log)
-    assert result.calls == [] and len(result.tools) == 6
+    assert result.calls == [] and len(result.tools) == 7
     assert result.recorder.connections == []
     assert result.recorder.phase == "shutdown"
     assert PHASE_LIST not in {c.phase for c in result.recorder.connections}
+
+
+def test_auto_calls_runs_zero_arg_tools_and_skips_destructive(
+    proxied_command, http_server, server_log, tmp_path, capsys
+):
+    from mcp_egress.cli import EXIT_OK, main
+
+    result = asyncio.run(
+        run_server(
+            proxied_command,
+            [CallSpec("ping", {"url": http_server.url + "/explicit"})],
+            errlog=server_log,
+            auto_calls=True,
+        )
+    )
+    assert [(c.tool, c.arguments) for c in result.calls] == [
+        ("ping", {"url": http_server.url + "/explicit"}),
+        ("env", {}),
+    ]
+    assert "fetch" not in {c.tool for c in result.calls}
+    assert result.skipped_destructive == ["wipe"]
+
+    out_file = tmp_path / "auto.json"
+    code = main(
+        [
+            "run",
+            "--auto-calls",
+            "--out",
+            str(out_file),
+            "--server-stderr",
+            str(tmp_path / "stderr.log"),
+            "--",
+            *proxied_command,
+        ]
+    )
+    assert code == EXIT_OK
+    stdout = capsys.readouterr().out
+    assert "wipe" in stdout
+    assert "destructive" in stdout.lower()
+    doc = json.loads(out_file.read_text())
+    called_names = [c["tool"] for c in doc["calls"]]
+    assert "env" in called_names
+    assert "fetch" not in called_names
+    assert "wipe" not in called_names
 
 
 def test_timed_out_call_is_recorded_not_raised(proxied_command, server_log):
